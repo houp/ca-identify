@@ -10,8 +10,6 @@ public class Math {
 	}
 
 	public static long pow2(int a) {
-		return 1L << a;
-		
+		return 1L << a;	
 	}
-
 }
