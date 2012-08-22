@@ -6,6 +6,7 @@ import ga.base.Params;
 import ga.base.TimeStep;
 import ga.base.TimeStepFittness;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -39,15 +40,11 @@ public class Runner {
 	}
 	
 	public static void main(String args[]) {
-		Params p = new Params();
 		int radius = Integer.parseInt(args[0]);
-		int rule = Integer.parseInt(args[1]);
 		
-		if(radius>2) radius=2;
-		
-		Rule r = new Rule(rule, radius);
+		Rule r = Rule.random(radius);
 		TimeStepFittness fittness = new TimeStepFittness(getTestCase(r, 79, 80));
-		GeneticAlgorithm ga = new GeneticAlgorithm(p, fittness, r);
+		GeneticAlgorithm ga = new GeneticAlgorithm(fittness, r);
 		ga.run();
 			
 		System.out.println("-----------------------------------------");

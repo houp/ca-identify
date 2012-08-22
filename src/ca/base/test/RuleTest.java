@@ -11,9 +11,7 @@ public class RuleTest {
 	@Test
 	public void evalTest1() {
 		boolean[] input = new boolean[] { false, true, false, true, false };
-		Rule r = new Rule();
-		r.setNumber(0);
-		r.setRadius(1);
+		Rule r = new Rule(0,1);
 		boolean[] output = r.eval(input);
 		
 		for(boolean b: output) {

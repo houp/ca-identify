@@ -5,7 +5,9 @@ import java.util.List;
 
 public class Population<T> {
 	private List<Chromosome<T>> chromosomes;
+	
 	private double totalFittness = 0;
+	
 	public Population(List<T> elements) {
 		chromosomes = new ArrayList<Chromosome<T>>(elements.size());
 		for(T element : elements) {
@@ -25,47 +27,26 @@ public class Population<T> {
 		return chromosomes.size();
 	}
 	
-//	public T getElement(T notThis) {
-//		if(chromosomes == null || chromosomes.size() == 0) {
-//			return null;
-//		}
-//		
-//		double r = Math.random() * totalFittness;
-//		double sum = 0;
-//		for(Chromosome<T> c : chromosomes) {
-//			sum += c.getFittnes();
-//			if(sum >= r && (notThis == null || c != notThis)) {
-//				return c.getElement();
-//			}
-//		}
-//		
-//		return chromosomes.get(chromosomes.size() - 1).getElement();
-//	}
-	
 	public T getElement(T notThis) {
-		int x = (int)(Math.random() * count());
+		int x = (int)(Math.random() * (count()-1));
 		int y = (int)(Math.random() * count());
-		
-		if(x==y) return chromosomes.get(x).getElement();
-		
 		if(x>y) {
-			int t = y;
-			y = x;
-			x = t;
+			int t = x; x=y;y=t;
 		}
 		
-		Chromosome<T> result = chromosomes.get(x + (int)(Math.random()*(y-x)));
+		Chromosome<T> result = chromosomes.get(x);
+		int off = 1;
 		
 		while(notThis != null && result.equals(notThis)) {
-			result = chromosomes.get(x + (int)(Math.random()*(y-x)));
+			result = chromosomes.get(x + off);
+			off++;
 		}
 		
-		for(int i=x;i<y;i++) {
+		for(int i=x+off; i<y; i++) {
 			Chromosome<T> foo = chromosomes.get(i);
-			if(foo.getFittnes() > result.getFittnes() && !foo.equals(notThis))
-				if(Math.random() > 0.55) {
+			if((foo.getFittnes() >= result.getFittnes()) && (!foo.equals(notThis))) {
 					result = foo;
-				}
+			}
 		}
 		
 		return result.getElement();
@@ -112,4 +93,13 @@ public class Population<T> {
 		
 		return result;
 	}
+	
+	public void debug() {
+		System.out.println("\n--");
+		for(Chromosome<T> c : chromosomes) {
+			System.out.print(String.format("%s (%f),", c.getElement(), c.getFittnes()));
+		}
+		System.out.println("\n--");
+	}
+	
 }

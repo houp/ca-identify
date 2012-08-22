@@ -12,4 +12,9 @@ public class Math {
 	public static long pow2(int a) {
 		return 1L << a;	
 	}
+	
+	public static int log2(int n){
+	    if(n <= 0) throw new IllegalArgumentException();
+	    return 31 - Integer.numberOfLeadingZeros(n);
+	}
 }

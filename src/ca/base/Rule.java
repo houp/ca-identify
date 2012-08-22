@@ -1,40 +1,42 @@
 package ca.base;
 
-public class Rule implements Cloneable {
-	private long number;
-	private int radius;
+import java.util.Arrays;
 
+public class Rule implements Cloneable {
 	private boolean[] lut;
+	private int radius;
 	
 	public Rule() {
 	}
 
 	public Rule(long number, int radius) {
-		this.number = number;
+		
 		this.radius = radius;
-		lut = getLookupTable();
+		lut = getLookupTable(number);
 	}
 
 	public Rule(Rule that) {
-		this(that.number, that.radius);
+		this(that.lut);
 	}
 
 	public static Rule random(int radius) {
-		long number = (long)(Math.random() * (double)utils.Math.pow2((int)utils.Math.pow2(2*radius+1)));
-		return new Rule(number, radius);
+		boolean[] lut = new boolean[(int)utils.Math.pow2(2*radius+1)];
+	
+		for(int i=0;i<lut.length;i++) {
+			lut[i] = Math.random() > 0.5;
+		}
+		
+		return new Rule(lut);
+	}
+	
+	public Rule(boolean[] lut) {
+		this.lut = Arrays.copyOf(lut, lut.length);
+		radius = (utils.Math.log2(lut.length)-1)/2;
 	}
 	
 	public long getNumber() {
-		return number;
+		return getNumberFromLookupTable(lut);
 	}
-
-	public void setNumber(long number) {
-		if(number != this.number) {
-			this.number = number;
-			this.lut = getLookupTable();
-		}
-	}
-
 	
 	@Override
 	public boolean equals(Object o) {
@@ -43,17 +45,21 @@ public class Rule implements Cloneable {
 		if (!(o instanceof Rule))
 			return false;
 		Rule that = (Rule) o;
-		return that.number == number && that.radius == radius;
-	}
-
-	@Override
-	public int hashCode() {
-		return (int) (31 * (17 + number) + radius);
+		
+		if(that.lut.length != this.lut.length) { 
+			return false; 
+		}
+		
+		for(int i=0;i<lut.length;i++) {
+			if(lut[i]!=that.lut[i]) return false;
+		}
+		
+		return true;
 	}
 
 	public Rule decreaseRadius() {
 		if (radius > 1) {
-			boolean[] lutBig = getLookupTable();
+			boolean[] lutBig = lut;
 			int[] blackCount = new int[(int) utils.Math.pow2(2 * (radius - 1) + 1)];
 			for (int i = 0; i < lutBig.length; i++) {
 				if (lutBig[i]) {
@@ -72,7 +78,7 @@ public class Rule implements Cloneable {
 	}
 
 	public Rule increaseRadius() {
-		boolean[] lutSmall = getLookupTable();
+		boolean[] lutSmall = lut;
 		int lenBig = (int) utils.Math.pow2(2 * (radius + 1) + 1);
 		int lenBigHalf = lenBig / 2;
 		boolean[] lutBig = new boolean[lenBig];
@@ -87,7 +93,7 @@ public class Rule implements Cloneable {
 	}
 
 	public Rule assignRadius(int radius) {
-		return changeRadius(radius - this.radius);
+		return changeRadius(radius - this.getRadius());
 	}
 
 	public Rule changeRadius(int offset) {
@@ -103,7 +109,7 @@ public class Rule implements Cloneable {
 		return result;
 	}
 
-	private boolean[] getLookupTable() {
+	private boolean[] getLookupTable(long number) {
 		boolean[] result = new boolean[(int) utils.Math.pow2(2 * radius + 1)];
 
 		for (int i = 0; i < result.length; i++) {
@@ -145,16 +151,16 @@ public class Rule implements Cloneable {
 		return radius;
 	}
 
-	public void setRadius(int radius) {
-		this.radius = radius;
-	}
-
 	public int getRuleBitLenght() {
 		return (int) utils.Math.pow2(2 * radius + 1);
 	}
 
+	public boolean[] getLut() {
+		return lut;
+	}
+	
 	@Override
 	public String toString() {
-		return "Rule: " + number + " @ radius: " + radius;
+		return "Rule: " + getNumber() + " @ radius: " + getRadius();
 	}
 }
