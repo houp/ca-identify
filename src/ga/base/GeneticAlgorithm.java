@@ -2,6 +2,7 @@ package ga.base;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import utils.Pair;
 import ca.base.Rule;
 import java.util.concurrent.*;
@@ -16,7 +17,9 @@ public class GeneticAlgorithm {
 	private Rule best = null;
 	private int iterations = 0;
 	private double bestFittness = 0;
-
+	private int mutationCount = 0;
+	private Random r = new Random();
+	
 	public GeneticAlgorithm(AbstractFittnessFunction<Rule> fittness, Rule r) {
 		this.fittnes = fittness;
 		population = buildPopulation(r);
@@ -38,22 +41,23 @@ public class GeneticAlgorithm {
 		Rule result = new Rule(c);
 		boolean[] lut = result.getLut();
 
-		for (int i = 0; i < lut.length; i++) {
-			if (Math.random() < Params.mutationProbability) {
-				lut[i] = !lut[i];
-			}
+		for(int pos = 0;pos<lut.length;pos++) {
+		if (r.nextDouble() < Params.mutationProbability) {
+			lut[pos] = !lut[pos];
+			mutationCount++;
 		}
-
-		if (Math.random() < Params.upScaleProbability
+		}
+/*
+		if (r.nextDouble() < Params.upScaleProbability
 				&& result.getRadius() < Params.maxRadius) {
 			return result.increaseRadius();
 		}
 
-		if (Math.random() < Params.downScaleProbability
+		if (r.nextDouble() < Params.downScaleProbability
 				&& result.getRadius() > Params.minRadius) {
 			return result.decreaseRadius();
 		}
-
+*/		
 		return result;
 	}
 
@@ -68,7 +72,7 @@ public class GeneticAlgorithm {
 		boolean[] lut1 = result.getFirst().getLut();
 		boolean[] lut2 = result.getSecond().getLut();
 
-		int pos = (int) Math.floor(lut1.length * Math.random());
+		int pos = r.nextInt(lut1.length);
 
 		for (int i = pos; i < lut1.length; i++) {
 			boolean tmp = lut1[i];
@@ -98,11 +102,11 @@ public class GeneticAlgorithm {
 		return (c1.getRadius() + c2.getRadius()) / 2;
 	}
 
-	private Population<Rule> evolve(final Population<Rule> p) {
+	private Population<Rule> evolve(Population<Rule> p) {
 		int count = p.count();
 		List<Rule> l = new ArrayList<Rule>(count);
 
-		for (int i = 0; i < count; i++) {
+		for (int i = 0; i < count/2; i++) {
 			Rule r1 = p.getElement();
 			Rule r2 = p.getElement(r1);
 
@@ -123,7 +127,7 @@ public class GeneticAlgorithm {
 			int radius = Params.minRadius;
 
 			if (radiusDiff > 0) {
-				radius += (int) Math.round((Math.random() * radiusDiff));
+				radius += r.nextInt(radiusDiff);
 			}
 
 			Rule r = Rule.random(radius);
@@ -154,14 +158,14 @@ public class GeneticAlgorithm {
 				best = newBest;
 			}
 
-			System.err.println(String.format("DEBUG: %d; %f; %f; %f; rule: %s",
-					i, best.getFittnes(), population.avgFittness(),
-					population.minFittness(), best.getElement().toString()));
+			System.err.println(String.format("DEBUG: %d (%d); [%f]; %f; %f; %f; rule: %s, p-rule: %s",
+					i, mutationCount, best.getFittnes(), newBest.getFittnes(), population.avgFittness(),
+					population.minFittness(), best.getElement().toString(), newBest.getElement().toString()));
 
 			if (newBest.getFittnes() == 1.0) {
 				break;
 			}
-
+			mutationCount=0;
 			population = evolve(population);
 			System.out.println("Time = " + (System.currentTimeMillis() - t1));
 		}

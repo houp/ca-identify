@@ -100,7 +100,7 @@ public class Rule implements Cloneable {
 		
 		Rule result = new Rule(this);
 
-		if(offset > 0) {
+		if(offset != 0) {
 			for (int i = 0; i < Math.abs(offset); i++) {
 				result = offset > 0 ? result.increaseRadius() : result.decreaseRadius();
 			}

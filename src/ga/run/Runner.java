@@ -42,7 +42,7 @@ public class Runner {
 	public static void main(String args[]) {
 		int radius = Integer.parseInt(args[0]);
 		
-		Rule r = Rule.random(radius);
+		Rule r = new Rule(1234567890,radius);
 		TimeStepFittness fittness = new TimeStepFittness(getTestCase(r, 79, 80));
 		GeneticAlgorithm ga = new GeneticAlgorithm(fittness, r);
 		ga.run();
