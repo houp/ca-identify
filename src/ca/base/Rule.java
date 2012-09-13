@@ -34,6 +34,11 @@ public class Rule implements Cloneable {
 		radius = (utils.Math.log2(lut.length)-1)/2;
 	}
 	
+	public Rule(boolean[] lut, int len) {
+		this.lut = Arrays.copyOf(lut, len);
+		radius = (utils.Math.log2(len)-1)/2;
+	}
+	
 	public long getNumber() {
 		return getNumberFromLookupTable(lut);
 	}
@@ -72,7 +77,7 @@ public class Rule implements Cloneable {
 				lutSmall[i] = blackCount[i] >= 2;
 			}
 
-			return new Rule(getNumberFromLookupTable(lutSmall), radius - 1);
+			return new Rule(lutSmall);
 		}
 		return new Rule(this);
 	}
@@ -89,7 +94,7 @@ public class Rule implements Cloneable {
 			lutBig[2 * i + 1 + lenBigHalf] = lutSmall[i];
 		}
 
-		return new Rule(getNumberFromLookupTable(lutBig), radius + 1);
+		return new Rule(lutBig);
 	}
 
 	public Rule assignRadius(int radius) {

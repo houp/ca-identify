@@ -1,44 +1,65 @@
 package ga.aparapi;
 
+import javax.management.RuntimeErrorException;
+
 import ga.base.Params;
+
+import ca.base.Rule;
 
 import com.amd.aparapi.Kernel;
 
 public class GeneticAlgorithmKernel extends Kernel {
 
-	private boolean[][] population;
-	private double[] fitness;
+	public boolean[][] population;
+	private boolean[][] tmpBuffer;
+	public double[] fitness;
 	private boolean[][][] evolution;
 
 	private int populationSize;
-	private int ruleLen;
 	private int offset;
 	private int stepLen;
 	private int steps;
-	private int radius;
-	private double[] progressiveFitness;
 
-	public GeneticAlgorithmKernel(int populationSize, int radius,
-			boolean[][][] evolution) {
+	public double[] progressiveFitness;
+
+	public int[] ruleLenTable;
+	public int[] radiusTable;
+
+	public int[] picked;
+	
+	private int maxRuleLen;
+
+	public GeneticAlgorithmKernel(int populationSize, boolean[][][] evolution) {
+
 		this.evolution = evolution;
-
-		fitness = new double[populationSize * 2];
-		progressiveFitness = new double[populationSize * 2];
 		this.populationSize = populationSize;
-		this.ruleLen = 1 << (2 * radius + 1);
-		this.radius = radius;
+		
+		picked = new int[populationSize*2];
+		
 		stepLen = evolution[0][0].length;
 		steps = evolution[0].length;
 
-		population = new boolean[populationSize * 2][ruleLen];
+		fitness = new double[populationSize * 2];
+		progressiveFitness = new double[populationSize * 2];
+		radiusTable = new int[populationSize * 2];
+		ruleLenTable = new int[populationSize * 2];
+
+		maxRuleLen = ruleLen(Params.maxRadius);
+
+		population = new boolean[populationSize * 2][maxRuleLen];
+		tmpBuffer = new boolean[populationSize * 2][maxRuleLen];
+
 		for (int i = 0; i < populationSize; i++) {
-			for (int j = 0; j < ruleLen; j++) {
+			radiusTable[i] = Params.minRadius + (int)ceil(Math.random() * (Params.maxRadius-Params.minRadius));
+	
+			ruleLenTable[i] = ruleLen(radiusTable[i]);
+			for (int j = 0; j < ruleLenTable[i]; j++) {
 				this.population[i][j] = Math.random() > 0.5;
 			}
 			fitness[i] = calculateFitness(i, evolution);
 		}
 
-		offset = -1;
+		offset = 0;
 
 	}
 
@@ -47,7 +68,8 @@ public class GeneticAlgorithmKernel extends Kernel {
 		int r1 = pickRule();
 		int r2 = pickRule(r1);
 
-		int i1 = offset + (2 * getGlobalId());
+		int gid = getGlobalId();
+		int i1 = offset + (2 * gid);
 		int i2 = i1 + 1;
 
 		cross(r1, r2, i1, i2);
@@ -58,42 +80,48 @@ public class GeneticAlgorithmKernel extends Kernel {
 		fitness[i2] = calculateFitness(i2, evolution);
 	}
 
+	private int ruleLen(int radius) {
+		return 1 << (2 * radius + 1);
+	}
+
 	private void copyRule(int src, int dst) {
-		for (int i = 0; i < ruleLen; i++) {
+		for (int i = 0; i < ruleLenTable[src]; i++) {
 			population[dst][i] = population[src][i];
 		}
 		fitness[dst] = fitness[src];
+		ruleLenTable[dst] = ruleLenTable[src];
+		radiusTable[dst] = radiusTable[src];
 	}
 
 	public void moveElite() {
-		double min=Double.MAX_VALUE;
+		double min = Double.MAX_VALUE;
 		int min_index = 0;
-		
+
 		for (int i = offset; i < offset + populationSize; i++) {
-			if(fitness[i] < min) {
+			if (fitness[i] < min) {
 				min = fitness[i];
 				min_index = i;
 			}
 		}
-		
+
 		int offset2 = offset == 0 ? populationSize : 0;
-		
+
 		double max = 0;
 		int max_index = 0;
-		
+
 		for (int i = offset2; i < offset2 + populationSize; i++) {
-			if(fitness[i] > max) {
+			if (fitness[i] > max) {
 				max = fitness[i];
 				max_index = i;
 			}
 		}
-		
-		copyRule(max_index, min_index);		
+
+		copyRule(max_index, min_index);
 	}
 
 	private boolean[] eval(boolean[] input, int rule) {
 		boolean[] result = new boolean[input.length];
-
+		int radius = radiusTable[rule];
 		for (int i = 0; i < input.length; i++) {
 			int pos = 0;
 			for (int j = 0; j < 2 * radius + 1; j++) {
@@ -135,54 +163,163 @@ public class GeneticAlgorithmKernel extends Kernel {
 		return pickRule(-1);
 	}
 
-	/*
-	 * private int pickRule(int notThis) { int start = (int) floor(Math.random()
-	 * * (populationSize - 1)) + offset; int end = start + 1 + (int)
-	 * floor(Math.random() ((populationSize - 1) - (start - offset)));
-	 * 
-	 * if (start == notThis) { start++; } int off = offset == 0 ? populationSize
-	 * : 0;
-	 * 
-	 * double max = fitness[start+off];
-	 * 
-	 * int maxInd = start;
-	 * 
-	 * for (int i = start + 1; i < end; i++) { if (fitness[i+off] > max && i !=
-	 * notThis) { max = fitness[i+off]; maxInd = start; } }
-	 * 
-	 * return maxInd; }
-	 */
-
 	private int pickRule(int notThis) {
-		double r = Math.random()
-				* progressiveFitness[populationSize - 1 + offset];
-		for (int i = offset; i < offset + populationSize; i++) {
-			if (progressiveFitness[i] > r && (i != notThis))
-				return i;
+		int result=0;
+		int offset2 = offset > 0 ? 0 : populationSize;
+		
+		double r = Math.random() * progressiveFitness[populationSize - 1 + offset2];
+		for (int i = offset2; i < offset2 + populationSize; i++) {
+			if (progressiveFitness[i] > r && (i != notThis)) {
+				result = i;
+				picked[result]++;
+				return result;
+			}
 		}
-		return offset + populationSize - 1;
+		result = notThis == offset2 + populationSize - 1 ? offset2 + populationSize - 2 : offset2 + populationSize - 1;
+		picked[result]++;
+		return result;
+		
 	}
 
-	private void cross(int r1, int r2, int i1, int i2) {
+	private int commonRadius(int rule1, int rule2) {
+		if(Math.random() > 0.5) {
+			return radiusTable[rule1];
+		}
+		else {
+			return radiusTable[rule2];
+		}
+	}
+
+	private void decreaseRadius(int src, int dst, int incr) {
+
+		boolean[] source = population[src];
+		boolean[] result = tmpBuffer[dst];
+		int radius = radiusTable[src];
+
+		if (radius - incr < Params.minRadius) {
+			System.out.println(String.format("Error: src=%d, dst=%d, radius[src]=%d, radius[dst]=%d, incr=%d", src, dst, radiusTable[src], radiusTable[dst], incr));
+			throw new RuntimeException("increase below minimum");
+		}
+
+		for (int iteration = 0; iteration < incr; iteration++) {
+
+			int[] blackCount = new int[(int) utils.Math
+					.pow2(2 * (radius - 1) + 1)];
+			for (int i = 0; i < ruleLen(radius); i++) {
+				if (source[i]) {
+					blackCount[i / 2 % blackCount.length]++;
+				}
+			}
+
+			for (int i = 0; i < blackCount.length; i++) {
+				result[i] = blackCount[i] >= 2;
+			}
+
+			source = result;
+			result = iteration % 2 == 0 ? population[dst] : tmpBuffer[dst];
+			radius--;
+		}
+
+		if (incr == 0) {
+			result = population[src];
+		}
+
+		if (incr % 2 == 1 || incr == 0) {
+			for (int i = 0; i < maxRuleLen; i++) {
+				population[dst][i] = result[i];
+			}
+		}
+
+		ruleLenTable[dst] = ruleLen(radius);
+		radiusTable[dst] = radius;
+	}
+
+	private void increaseRadius(int src, int dst, int incr) {
+
+		boolean[] source = population[src];
+		boolean[] result = tmpBuffer[dst];
+		int radius = radiusTable[src];
+
+		if (radius + incr > Params.maxRadius) {
+			throw new RuntimeException("trying to get radius: " + radius
+					+ " + " + incr);
+		}
+
+		for (int iteration = 0; iteration < incr; iteration++) {
+
+			int lenBig = (int) utils.Math.pow2(2 * (radius + 1) + 1);
+			int lenBigHalf = lenBig / 2;
+
+			for (int i = 0; i < ruleLen(radius); i++) {
+				result[2 * i] = source[i];
+				result[2 * i + lenBigHalf] = source[i];
+				result[2 * i + 1] = source[i];
+				result[2 * i + 1 + lenBigHalf] = source[i];
+			}
+
+			source = result;
+			result = iteration % 2 == 0 ? population[dst] : tmpBuffer[dst];
+			radius++;
+		}
+
+		if (incr == 0) {
+			result = population[src];
+
+		}
+
+		if (incr % 2 == 1 || incr == 0) {
+			for (int i = 0; i < maxRuleLen; i++) {
+				population[dst][i] = result[i];
+			}
+		}
+
+		ruleLenTable[dst] = ruleLen(radius);
+		radiusTable[dst] = radius;
+
+	}
+
+	private void changeRadius(int src, int dst, int radius) {
+		int incr = radius - radiusTable[src];
+		if (incr > 0)
+			increaseRadius(src, dst, incr);
+		else
+			decreaseRadius(src, dst, -1*incr);
+
+	}
+
+	private void cross(int src1, int src2, int dst1, int dst2) {
+
+		int radius = commonRadius(src1, src2);
+		changeRadius(src1, dst1, radius);
+		changeRadius(src2, dst2, radius);
+
+		int ruleLen = ruleLenTable[dst1];
+
 		int pos = (int) (floor(Math.random() * (ruleLen - 2)) + 1);
 
 		for (int i = 0; i < pos; i++) {
-			population[i1][i] = population[r1][i];
-			population[i2][i] = population[r2][i];
+			boolean tmp = population[dst1][i];
+			population[dst1][i] = population[dst2][i];
+			population[dst2][i] = tmp;
 		}
 
-		for (int i = pos; i < ruleLen; i++) {
-			population[i2][i] = population[r1][i];
-			population[i1][i] = population[r2][i];
-		}
 	}
 
 	private void mutate(int ind) {
-		for (int i = 0; i < ruleLen; i++) {
+		for (int i = 0; i < ruleLenTable[ind]; i++) {
 			if (Math.random() < Params.mutationProbability) {
 				population[ind][i] = !population[ind][i];
 			}
 		}
+		
+		if(Math.random() < Params.downScaleProbability && radiusTable[ind] > Params.minRadius) {
+			decreaseRadius(ind, ind, 1);
+		}
+		if(Math.random() < Params.upScaleProbability && radiusTable[ind] < Params.maxRadius) {
+			increaseRadius(ind, ind, 1);
+		}
+		
+		
 	}
 
 	public int bestFitnessIndex() {
@@ -220,7 +357,7 @@ public class GeneticAlgorithmKernel extends Kernel {
 	}
 
 	public void calculateProgressiveFitness() {
-		progressiveFitness[0 + offset] = fitness[0 + offset];
+		progressiveFitness[offset] = fitness[offset];
 		for (int i = 1 + offset; i < offset + populationSize; i++) {
 			progressiveFitness[i] = fitness[i] + progressiveFitness[i - 1];
 		}
