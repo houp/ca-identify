@@ -68,7 +68,7 @@ So the goal of genetic algorithm is to maximize $fit$ function, by selecting bes
 
 We select rules randomly, with weighted chances based on the fitness (i.e. rules with higher fitness have bigger chances of being picked). For the population of $N$ individuals we select $N/2$ pairs and feed them to crossover procedure, and then mutate each of the effecting organisms.
 
-In the implementation we store all fitness values in a table {\bf fitness}. Using this table, we then calculate helper table {\bf progressiveFitness} which is defined as:
+In the implementation we store all fitness values in a table \verb+fitness+. Using this table, we then calculate helper table \verb+progressiveFitness+ which is defined as:
 \begin{verbatim}
 prograssiveFitness[0] = fitness[0]
 
@@ -82,16 +82,13 @@ This way, rules with higher fitness are more likely to be chosen.
 
 It's up to future research wether different ways of selecting best individuals give better results. 
 
-
 \subsection{Cross-over}
 
 Crossover between rules $r_1$ and $r_2$ can only happen when $rad(r_1) = rad(r_2)$. It it's the case, than we use one-point crossover. We randomly select a point in rules LUT and cross-over entries in LUT starting from this point. 
 
 In case where $rad(r_1)\neq rad(r_2)$ then we randomly pick one of the rules, and up-scale or down-scale the other one, to match radiuses.
 
-Up-scaling is always possible and its "lossless", since class of rules with bigger radius is richer than those with lower one. Down-scaling on the other hand looses some information of the rule definition.
-
-TODO: add more details on up-scaling and down-scaling implementation.
+Up-scaling is always possible and its "lossless", since class of rules with bigger radius is richer than those with lower one. Down-scaling on the other hand looses some information of the rule definition, but it's also quite straightforward. 
 
 \subsection{Mutation}
 
@@ -106,6 +103,39 @@ The additional type of mutations down-scale or up-scale the radius of a rule at 
 The evolution of genetic algorithm continues with iterative applying of fitness recalculation, selection, cross-over and mutation. In each iteration we additionally keep the best individual from previous iteration without any modifications.
 
 We end the algorithm when there is a rule with $fit(r)=1$ or when a fixed number of iterations elapsed. 
+
+\section{Running the code}
+
+Current version is in the git repository (\href{https://github.com/houp/ca-identify}{https://github.com/houp/ca-identify}). You can download the code or clone the repository using git. 
+
+To run and compile the code you need JDK 1.7 (1.6 might work) and ant build tool. If you have all that installed simply run \verb+ant+ command in the root tree of repository, and then go to \verb+dist+ subdirectory and use \verb+run.sh+ script to run the program. Note that those scripts were only tested on UNIX-like systems (Linux, OSX) but should also work on Windows (maybe with some small changes).
+
+Typical output of current version looks like this (one iteration):
+\begin{verbatim}
+t=3, max_f=0,863360, avg_f=0,585043, rule=Rule: 2295292771 @ radius: 2
+Time = 82
+dist[0] = 0, dist[1] = 60, dist[2] = 253, dist[3] = 187,
+\end{verbatim}
+
+It means that this is evolution step $3$, maximum fitness for now is $0.863360$, average fitness is $0.585043$, current best rule is: $2295292771$ with radius: 2, time of calculating this evolution was 82 ms, and the distribution of radiuses among the population is as shown in the \verb+dist+ table.
+
+The parameters of the simulation are hard-coded in the source tree for now, in \verb+ga.base.Params+ class:
+\begin{verbatim}
+public class Params {
+	public final static double mutationProbability = 0.07; // point mutation
+	public final static int populationCount = 500; 
+	public final static int minRadius = 1;
+	public final static int maxRadius = 3;
+	public final static double upScaleProbability = 0.07; // up-scale mutation
+	public final static double downScaleProbability = 0.07; // down-scale mutation
+	public final static int maxRunCount = 5000; // iterations
+	public final static long rule = 2294967295L; // rule to look for
+	public final static int radius = 2; // radius of the rule to look for
+}
+\end{verbatim}
+You can adjust those, recompile (with ant) and re-run to see the results.
+
+
 
 \section{Results}
 
