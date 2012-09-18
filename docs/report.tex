@@ -37,10 +37,30 @@ We start by randomly selecting $N$ rules $r^{0}_i,\ i=1,\ldots,N$,  with radiuse
 
 Then we evaluate all those rules according to fitness function. For some rule $r$ the fitness function is given by:
 \[
-fit(r) = \frac{1}{|S|}\sum_{s\in S} 1 - \frac{\sum_{t=1}^{T-1}  2^{-t}\left(\sum_{j=1}^{|s|} |r^{(t)}(i_0(s))[j] - i_{t}[j]|\right)}{|s|(1-2^{-T})}.
+fit(r) = \frac{1}{|S|}\sum_{s\in S} 1 - \frac{\sum_{t=1}^{T-1}  2^{-t}\left(\sum_{j=1}^{|s|} |r^{(t)}(i_0(s))[j] - i_{t}[j]|\right)}{|s|(1-2^{-T+1})}.
 \]
 
-Note that for any rule $r$ we have $0\leq fit(r) \leq 1$, and $fit(r) = 1$ if $r = R$ or if $r$ is good enough to fully simulate $R$ on given image set. 
+To make this formula more readable, lets denote the number of errors (cells in wrong state) of rule $r$ with initial state $s$ at time $t$ by $e_t(r,s)$. Then:
+
+\[ e_t(r,s) = \sum_{j=1}^{|s|} |r^{(t)}(i_0(s))[j] - i_t[j]|.\]
+
+Note that for any rule $r$, $t\in [1,T]$ and $s\in S$ we have:
+\[ 0 \leq e_t(r,s) \leq |s|. \]
+
+We can now rewrite $fit(r)$ using this symbol:
+\[
+fit(r) = \frac{1}{|S|}\sum_{s\in S} 1 - \frac{\sum_{t=1}^{T-1}  2^{-t} e_t(r,s)}{|s|(1-2^{-T+1})}.
+\]
+
+Now we can see that if a particular rule $r$ is bad enough to have $e_t(r,s) = |s|$ for every $s\in S$, than:
+\[
+fit(r) = \frac{1}{|S|}\sum_{s\in S} 1 - \frac{|s|\sum_{t=1}^{T-1} 2^{-t}}{|s|(1-2^{-T+1})} = 
+\frac{1}{|S|}\sum_{s\in S} 1 - \frac{\sum_{t=1}^{T-1} 2^{-t}}{(1-2^{-T+1})} = 0.
+\]
+
+On the other hand, if $e_t(r,s) = 0$ for all $s\in S$, then obviously $fit(r) = 1$.
+
+Generally for any rule $r$ we have $0\leq fit(r) \leq 1$, and $fit(r) = 1$ if $r = R$ or if $r$ is good enough to fully simulate $R$ on given image set. 
 
 So the goal of genetic algorithm is to maximize $fit$ function, by selecting best matches, reproducing and manipulating them.
 
@@ -48,7 +68,20 @@ So the goal of genetic algorithm is to maximize $fit$ function, by selecting bes
 
 We select rules randomly, with weighted chances based on the fitness (i.e. rules with higher fitness have bigger chances of being picked). For the population of $N$ individuals we select $N/2$ pairs and feed them to crossover procedure, and then mutate each of the effecting organisms.
 
-TODO: describe selection in details.
+In the implementation we store all fitness values in a table {\bf fitness}. Using this table, we then calculate helper table {\bf progressiveFitness} which is defined as:
+\begin{verbatim}
+prograssiveFitness[0] = fitness[0]
+
+for (int i = 1; i < populationSize; i++)
+	progressiveFitness[i] = progressiveFitness[i-1] + fitness[i];
+\end{verbatim}
+
+Then we take a nonnegative random (with uniform distribution) number $\rho$ not greater than the last entry in progressiveFitness table and pick a rule numbered $i$ such that:
+\[ progressiveFitness[i-1] < \rho \leq progressiveFitness[i].\]
+This way, rules with higher fitness are more likely to be chosen.
+
+It's up to future research wether different ways of selecting best individuals give better results. 
+
 
 \subsection{Cross-over}
 
