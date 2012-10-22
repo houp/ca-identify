@@ -86,7 +86,7 @@ public class AparapiRunner {
 			double tmpBest = kernel.bestFitness();
 			if (bestFittnes < tmpBest) {
 				bestFittnes = tmpBest;
-				System.out.println("new best!");
+				//System.out.println("new best!");
 				bestRule = new Rule(kernel.bestRule());
 			}
 
@@ -95,16 +95,15 @@ public class AparapiRunner {
 			System.err.println(String.format(
 					"t=%d, max_f=%f, avg_f=%f, rule=%s", i, tmpBest,
 					kernel.avgFitness(), new Rule(kernel.population[best],kernel.ruleLenTable[best])));
-			System.err.println("Time = " + (System.currentTimeMillis() - t1));
 
 			int[] dist = new int[Params.maxRadius+1];
 			for(int rad=0;rad<Params.populationCount;rad++) {
 				dist[kernel.radiusTable[rad+kernel.getOffset()]]++;
 			}
 			
-			String s = "";
-			for(int rad=0;rad<Params.maxRadius+1;rad++) {
-				s+= String.format("dist[%d] = %d, ",rad,dist[rad]);
+			String s = "t="+i+", ";
+			for(int rad=1;rad<Params.maxRadius+1;rad++) {
+				s+= String.format("dist[%d] = %f, ",rad,(double)dist[rad]/Params.populationCount);
 			}
 			System.out.println(s);
 			

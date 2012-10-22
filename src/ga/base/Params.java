@@ -4,7 +4,7 @@ public class Params {
 	public final static double mutationProbability = 0.07;
 	public final static int populationCount = 500;
 	public final static int minRadius = 1;
-	public final static int maxRadius = 3;
+	public final static int maxRadius = 5;
 	public final static double upScaleProbability = 0.07;
 	public final static double downScaleProbability = 0.07;
 	public final static int maxRunCount = 5000;
