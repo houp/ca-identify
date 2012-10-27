@@ -166,6 +166,6 @@ public class Rule implements Cloneable {
 	
 	@Override
 	public String toString() {
-		return "Rule: " + getNumber() + " @ radius: " + getRadius();
+		return "rule: " + getNumber() + " @ radius: " + getRadius();
 	}
 }
