@@ -62,11 +62,9 @@ public class AparapiRunner {
 
 		Rule r = new Rule(Params.rule, Params.radius);
 
-		boolean[][][] e = { getRandomTestCase(r), getTestCase(r),
-				getTestCase2(r) };
+		boolean[][][] e = { getRandomTestCase(r), getTestCase(r), getTestCase2(r) };
 
-		GeneticAlgorithmKernel kernel = new GeneticAlgorithmKernel(
-				Params.populationCount, e);
+		GeneticAlgorithmKernel kernel = new GeneticAlgorithmKernel(Params.populationCount, e);
 
 		double bestFitness = 0;
 		Rule bestRule = null;
@@ -74,11 +72,13 @@ public class AparapiRunner {
 		for (i = 0; i < Params.maxRunCount; i++) {
 
 			kernel.calculateProgressiveFitness();
-			kernel.setOffset(kernel.getOffset() == 0 ? Params.populationCount
-					: 0);
+			kernel.setOffset(kernel.getOffset() == 0 ? Params.populationCount : 0);
 
 			kernel.execute(Params.populationCount / 2);
-			kernel.moveElite();
+
+			if (Params.keepBest) {
+				kernel.moveElite(Params.elite);
+			}
 
 			double tmpBest = kernel.bestFitness();
 			if (bestFitness < tmpBest) {
@@ -88,10 +88,7 @@ public class AparapiRunner {
 
 			int best = kernel.bestFitnessIndex();
 
-			StringBuilder sb = new StringBuilder(String.format(
-					"t=%d, max_f=%f, avg_f=%f, best_rule=%s", i, tmpBest,
-					kernel.avgFitness(), new Rule(kernel.population[best],
-							kernel.ruleLenTable[best])));
+			StringBuilder sb = new StringBuilder(String.format("t=%d, max_f=%f, avg_f=%f, best_rule=%s", i, tmpBest, kernel.avgFitness(), new Rule(kernel.population[best], kernel.ruleLenTable[best])));
 
 			int[] dist = new int[Params.maxRadius + 1];
 			for (int rad = 0; rad < Params.populationCount; rad++) {
@@ -99,11 +96,15 @@ public class AparapiRunner {
 			}
 
 			if (Params.minRadius != Params.maxRadius) {
-				sb.append(", dist: ");
+				StringBuilder db = new StringBuilder(", dist:");
+				double avgRad = 0;
 				for (int rad = Params.minRadius; rad < Params.maxRadius + 1; rad++) {
-					sb.append(String.format("%d = %f, ", rad,
-							(double) dist[rad] / Params.populationCount));
+					double foo = (double) dist[rad] / Params.populationCount;
+					db.append(String.format("%d = %f, ", rad, foo));
+					avgRad += rad * foo;
 				}
+				sb.append(String.format(", avg_rad=%f", avgRad));
+				sb.append(db.toString());
 			}
 			result(sb.toString());
 
