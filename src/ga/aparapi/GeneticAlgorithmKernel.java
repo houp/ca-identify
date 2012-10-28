@@ -2,9 +2,6 @@ package ga.aparapi;
 
 import ga.base.Params;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.amd.aparapi.Kernel;
 
 public class GeneticAlgorithmKernel extends Kernel {

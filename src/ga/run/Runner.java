@@ -1,14 +1,11 @@
 package ga.run;
 
-import ga.base.Chromosome;
 import ga.base.GeneticAlgorithm;
 import ga.base.Params;
 import ga.base.TimeStep;
 import ga.base.TimeStepFittness;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import ca.base.Rule;

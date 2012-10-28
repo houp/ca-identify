@@ -79,7 +79,7 @@ public class Population<T> {
 			result += f;
 		}
 		
-		return result / (double)count();
+		return result / count();
 	}
 	
 	public double minFittness() {
