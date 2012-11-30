@@ -55,6 +55,14 @@ public class AparapiRunner {
 		return result;
 	}
 
+	private static String printArray(double[] a) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < a.length; i++) {
+			sb.append(a[i] + ", ");
+		}
+		return sb.toString();
+	}
+
 	public static void main(String[] args) {
 
 		Params.readConf();
@@ -73,7 +81,7 @@ public class AparapiRunner {
 
 			kernel.calculateProgressiveFitness();
 			kernel.setOffset(kernel.getOffset() == 0 ? Params.populationCount : 0);
-
+			kernel.reset();
 			kernel.execute(Params.populationCount / 2);
 
 			if (Params.keepBest) {
@@ -88,7 +96,8 @@ public class AparapiRunner {
 
 			int best = kernel.bestFitnessIndex();
 
-			StringBuilder sb = new StringBuilder(String.format("t=%d, max_f=%f, avg_f=%f, best_rule=%s", i, tmpBest, kernel.avgFitness(), new Rule(kernel.population[best], kernel.ruleLenTable[best])));
+			StringBuilder sb = new StringBuilder(String.format("t=%d, max_f=%f, avg_f=%f, min_f=%f, div=%f, best_rule=%s, {cs=%s}, {ms=%s}, {cms=%s}", i, tmpBest, kernel.avgFitness(), kernel.minFitness(), kernel.getDiversity(), new Rule(
+					kernel.population[best], kernel.ruleLenTable[best]), printArray(kernel.getCrossStats()), printArray(kernel.getMutationStats()), printArray(kernel.getMutationAndCrossStats())));
 
 			int[] dist = new int[Params.maxRadius + 1];
 			for (int rad = 0; rad < Params.populationCount; rad++) {

@@ -13,3 +13,9 @@ echo $CMD
 eval $CMD
 done
 
+echo "Building plots"
+
+./build_plots.sh
+./build_avg_rad_plots.sh
+./build_dist_plots.sh
+./build_stat_plots.sh

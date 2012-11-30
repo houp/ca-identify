@@ -4,12 +4,12 @@ import java.util.Properties;
 import static utils.Logger.*;
 
 public class Params {
-	public static double mutationProbability = 0.07;
+	public static double mutationProbability = 0.2;
 	public static int populationCount = 500;
 	public static int minRadius = 1;
 	public static int maxRadius = 4;
-	public static double upScaleProbability = 0.07;
-	public static double downScaleProbability = 0.07;
+	public static double upScaleProbability = 0.1;
+	public static double downScaleProbability = 0.1;
 	public static int maxRunCount = 5000;
 	public static long rule = 2294967295L;
 	public static int radius = 2;
@@ -17,10 +17,15 @@ public class Params {
 	public static int timeLen = 80;
 	public static boolean keepBest = true;
 	public static int elite = 1;
-
+	public static double crossProbability = 1;
+	
 	public static void readConf() {
 		Properties p = System.getProperties();
 
+		if (p.containsKey("crossProbability")) {
+			crossProbability = Double.parseDouble((String) p.get("crossProbability"));
+		}
+		
 		if (p.containsKey("ca.keepBest")) {
 			keepBest = Boolean.parseBoolean((String) p.get("ca.keepBest"));
 		}

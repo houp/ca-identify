@@ -2,13 +2,40 @@ package ga.aparapi;
 
 import ga.base.Params;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.amd.aparapi.Kernel;
 
 public class GeneticAlgorithmKernel extends Kernel {
 
+	class Statistics {
+		public AtomicInteger better;
+		public AtomicInteger same;
+		public AtomicInteger worse;
+
+		public Statistics() {
+			better = new AtomicInteger();
+			same = new AtomicInteger();
+			worse = new AtomicInteger();
+		}
+
+		public synchronized void reset() {
+			better.set(0);
+			same.set(0);
+			worse.set(0);
+		}
+	}
+
+	private Statistics crossOverStats;
+	private Statistics mutationAndCrossStats;
+	private Statistics mutationStats;
+
 	public boolean[][] population;
 	private boolean[][] tmpBuffer;
 	public double[] fitness;
+
 	private boolean[][][] evolution;
 
 	private int populationSize;
@@ -57,10 +84,21 @@ public class GeneticAlgorithmKernel extends Kernel {
 
 		offset = 0;
 
+		crossOverStats = new Statistics();
+		mutationAndCrossStats = new Statistics();
+		mutationStats = new Statistics();
+
+	}
+
+	public void reset() {
+		crossOverStats.reset();
+		mutationAndCrossStats.reset();
+		mutationStats.reset();
 	}
 
 	@Override
 	public void run() {
+
 		int r1 = pickRule();
 		int r2 = pickRule(r1);
 
@@ -68,12 +106,47 @@ public class GeneticAlgorithmKernel extends Kernel {
 		int i1 = offset + (2 * gid);
 		int i2 = i1 + 1;
 
-		cross(r1, r2, i1, i2);
+		double sum = fitness[r1] + fitness[r2];
+
+		if (Math.random() < Params.crossProbability) {
+			cross(r1, r2, i1, i2);
+		} else {
+			copyRule(r1, i1);
+			copyRule(r2, i2);
+		}
+
+		double afterCross = calculateFitness(i1, evolution) + calculateFitness(i2, evolution);
+		if (afterCross > sum) {
+			crossOverStats.better.addAndGet(1);
+		} else if (afterCross == sum) {
+			crossOverStats.same.addAndGet(1);
+		} else {
+			crossOverStats.worse.addAndGet(1);
+		}
+
 		mutate(i1);
 		mutate(i2);
 
 		fitness[i1] = calculateFitness(i1, evolution);
 		fitness[i2] = calculateFitness(i2, evolution);
+
+		double afterCrossAndMut = fitness[i1] + fitness[i2];
+
+		if (afterCrossAndMut > afterCross) {
+			mutationStats.better.addAndGet(1);
+		} else if (afterCrossAndMut == afterCross) {
+			mutationStats.same.addAndGet(1);
+		} else {
+			mutationStats.worse.addAndGet(1);
+		}
+
+		if (afterCrossAndMut > sum) {
+			mutationAndCrossStats.better.addAndGet(1);
+		} else if (afterCrossAndMut == sum) {
+			mutationAndCrossStats.same.addAndGet(1);
+		} else {
+			mutationAndCrossStats.worse.addAndGet(1);
+		}
 	}
 
 	private int ruleLen(int radius) {
@@ -149,6 +222,14 @@ public class GeneticAlgorithmKernel extends Kernel {
 		return result;
 	}
 
+	private double u(double x) {
+		return 3 * pow(x, 2) - 2 * pow(x, 3);
+	}
+
+	private double smooth(double x) {
+		return u(x);
+	}
+
 	private double calculateFitness(int rule, boolean[][][] evolution) {
 		int errorCount = 0;
 		double result = 0;
@@ -170,7 +251,7 @@ public class GeneticAlgorithmKernel extends Kernel {
 
 			result += 1.0 - error / (stepLen * (1 - Math.pow(0.5, steps)));
 		}
-		return result / evolution.length;
+		return smooth(result / evolution.length);
 	}
 
 	private int pickRule() {
@@ -354,6 +435,17 @@ public class GeneticAlgorithmKernel extends Kernel {
 		return offset;
 	}
 
+	public double minFitness() {
+		double result = fitness[offset];
+		for (int i = offset + 1; i < offset + populationSize; i++) {
+			if (result > fitness[i]) {
+				result = fitness[i];
+			}
+		}
+
+		return result;
+	}
+
 	public double avgFitness() {
 		double sum = 0;
 		for (int i = offset + 1; i < populationSize + offset; i++) {
@@ -372,6 +464,43 @@ public class GeneticAlgorithmKernel extends Kernel {
 			progressiveFitness[i] = fitness[i] + progressiveFitness[i - 1];
 		}
 
+	}
+
+	private String getRuleString(boolean[] rule, int len) {
+		StringBuilder sb = new StringBuilder(len);
+		for (int i = 0; i < len; i++) {
+			sb.append(rule[i] ? '1' : '0');
+		}
+		return sb.toString();
+	}
+
+	public double getDiversity() {
+		Set<String> rules = new HashSet<>();
+		for (int i = offset; i < populationSize + offset; i++) {
+			rules.add(getRuleString(population[i], ruleLenTable[i]));
+		}
+		return (double) rules.size() / (double) populationSize;
+	}
+
+	public double[] getCrossStats() {
+		return getStats(crossOverStats);
+	}
+
+	public double[] getMutationAndCrossStats() {
+		return getStats(mutationAndCrossStats);
+	}
+
+	public double[] getMutationStats() {
+		return getStats(mutationStats);
+	}
+
+	private double[] getStats(Statistics s) {
+		int better = s.better.get();
+		int same = s.same.get();
+		int worse = s.worse.get();
+
+		int total = better + same + worse;
+		return new double[] { (double) better / total, (double) same / total, (double) worse / total };
 	}
 
 }
